@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring.project.auction.dao.IAuctionDAO">
+
+	<insert id="registAuction" parameterType="com.spring.project.auction.dto.AuctionDTO">
+			
+			INSERT INTO auctions(
+			    auc_id
+			    , auc_name
+			    , auc_content 
+			    , mem_id
+			    , start_price
+   				, cur_price
+			    , auc_date
+			    , auc_duration
+			    , fin_yn
+			    , last_bid_id
+			    , auc_img
+			    , refund_yn
+			)VALUES(
+			    #{aucId}
+			    , #{aucName}
+			    , #{aucContent}
+			    , #{memId}
+			    , #{startPrice}
+			    , #{startPrice}
+			    , SYSDATE
+			    , #{aucDuration}
+			    , 'N'
+			    , 'null'
+			    , #{aucImg}
+			    , 'N'
+			)
+			
+	</insert>
+	
+	<select id="getAuctionList" resultType="com.spring.project.auction.dto.AuctionDTO">
+		SELECT
+		      auc_id
+		    , auc_name
+		    , start_price
+		    , cur_price
+		    , TO_CHAR(auc_date, 'MM-DD HH24:MI') AS auc_date
+		    , auc_duration
+		    , left_time
+		    , last_bid_id
+		    , auc_img
+		FROM auctions
+		ORDER BY auc_id DESC
+	</select>
+
+	<select id="getAuction" parameterType="String" resultType="com.spring.project.auction.dto.AuctionDTO">
+		SELECT
+		     auc_id
+		    , auc_name
+		    , auc_content 
+		    , mem_id
+		    , start_price
+		    , cur_price
+		    , auc_date
+		    , auc_duration
+		    , fin_yn
+		    , left_time
+		    , last_bid_id
+		FROM auctions
+		WHERE 1=1
+		  AND auc_id = #{aucId}	
+	</select>
+	
+	<update id="updateCurPrice" parameterType="com.spring.project.bid.dto.BidDTO" >
+		UPDATE auctions
+		SET cur_price = #{bidPrice}
+		WHERE auc_id = #{aucId}	
+	</update>
+	
+	<update id="updateTime">
+		UPDATE auctions
+		SET left_time =  AUC_DURATION *3600000 - ROUND(
+		        (EXTRACT(DAY FROM (SYSTIMESTAMP - AUC_DATE) DAY TO SECOND) * 86400
+		         + EXTRACT(HOUR FROM (SYSTIMESTAMP - AUC_DATE) DAY TO SECOND) * 3600
+		         + EXTRACT(MINUTE FROM (SYSTIMESTAMP - AUC_DATE) DAY TO SECOND) * 60
+		         + EXTRACT(SECOND FROM (SYSTIMESTAMP -AUC_DATE) DAY TO SECOND)) * 1000
+		    )	
+	</update>
+
+	<update id="finishAuction">
+    
+		UPDATE AUCTIONS
+		SET fin_yn = 'Y'
+		WHERE LEFT_TIME LIKE '-%'
+	</update>
+	
+	<select id="getCartAucList" parameterType="String" resultType="com.spring.project.auction.dto.AuctionDTO">
+		SELECT
+				      auc_id
+				    , auc_name
+				    , start_price
+				    , cur_price
+				    , TO_CHAR(auc_date, 'MM-DD HH24:MI') AS auc_date
+				    , auc_duration
+				    , AUC_DURATION *3600000 - ROUND(
+				        (EXTRACT(DAY FROM (SYSTIMESTAMP - AUC_DATE) DAY TO SECOND) * 86400
+				         + EXTRACT(HOUR FROM (SYSTIMESTAMP - AUC_DATE) DAY TO SECOND) * 3600
+				         + EXTRACT(MINUTE FROM (SYSTIMESTAMP - AUC_DATE) DAY TO SECOND) * 60
+				         + EXTRACT(SECOND FROM (SYSTIMESTAMP -AUC_DATE) DAY TO SECOND)) * 1000
+				    )	as left_time
+				    , fin_yn
+		FROM auctions
+		WHERE 1=1
+		  AND auc_id = #{aucId}
+		  	
+	</select>
+	
+	<update id="updateLastId" parameterType="com.spring.project.auction.dto.AuctionDTO">
+		UPDATE AUCTIONS
+		SET last_bid_id = #{memId}
+		WHERE auc_id = #{aucId}
+	</update>
+	
+	<select id="getMyList" parameterType="String" resultType="com.spring.project.auction.dto.AuctionDTO">
+		SELECT
+		      auc_id
+		    , auc_name
+		    , cur_price
+		FROM AUCTIONS
+		WHERE 1=1
+		  AND LAST_BID_ID=#{memId}
+		  AND FIN_YN = 'Y'	
+	
+	</select>
+	
+	<select id="getInvalidateBid" parameterType="com.spring.project.auction.dto.AuctionDTO" resultType="com.spring.project.bid.dto.BidDTO" >
+		SELECT
+		      auc_id
+		    , mem_id
+		    , bid_price
+		FROM bid
+		WHERE 1=1
+		  AND AUC_ID = #{aucId}
+		  AND mem_id != #{lastBidId}
+		  AND is_validate = 'Y'	
+	</select>
+	
+	<select id="getSellList" parameterType="String" resultType="com.spring.project.auction.dto.AuctionDTO">
+		SELECT
+			auc_id
+			, auc_name
+			, start_price
+			, cur_price
+			, last_bid_id
+			, fin_yn
+			, left_time
+		FROM AUCTIONS
+		WHERE 1=1
+		  AND MEM_ID = #{memId}
+		ORDER BY LEFT_TIME
+	
+	
+	</select>
+	
+	<select id="findLast" resultType="com.spring.project.auction.dto.AuctionDTO">
+		SELECT
+		    auc_id
+		    , mem_id
+		    , last_bid_id
+		FROM auctions
+		WHERE 1=1
+		  AND fin_yn = 'Y'
+		  AND refund_yn = 'N'	
+	</select>
+	
+	<update id="updateRefYn" parameterType="String">
+		UPDATE auctions
+		SET refund_yn = 'Y'
+		WHERE 1=1
+		  AND auc_id=#{aucId}		
+	</update>
+	
+	
+</mapper>
